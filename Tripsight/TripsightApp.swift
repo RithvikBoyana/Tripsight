@@ -11,7 +11,7 @@ import SwiftUI
 struct TripsightApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(networkService: NetworkService.shared)
         }
     }
 }
