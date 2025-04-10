@@ -7,7 +7,7 @@ protocol NetworkServiceProtocol {
 class NetworkService: NetworkServiceProtocol {
     static let shared = NetworkService()
     
-    // Dummy URL - replace with actual backend URL later
+    // private let baseURL = "http://127.0.0.1:8000"
     private let baseURL = "https://tripsight-backend.onrender.com"
     
     init() {
