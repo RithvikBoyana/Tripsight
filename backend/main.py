@@ -36,7 +36,7 @@ def generate_itinerary(request: TripRequest):
     print(f"Received request: {request}")  # Debugging line
     
     try:
-        prompt = f"""Create a {request.days}-day travel itinerary for {request.destination} based on these interests: {', '.join(request.interests)}.
+        prompt = f"""Create a travel itinerary for {request.destination} for {request.days} days based on these interests: {', '.join(request.interests)}.
 
 IMPORTANT: Follow this EXACT format for each day:
 
@@ -70,7 +70,8 @@ Rules:
 6. No additional text or descriptions
 7. Keep activities concise and specific
 8. For single-day itineraries (1 day), focus on the most essential and iconic experiences that can be realistically completed in one day
-9. For multi-day itineraries, ensure activities are spread out logically and consider travel time between locations"""
+9. For multi-day itineraries, ensure activities are spread out logically and consider travel time between locations
+10. Make sure if the days value is greater than 1, you generate the correct number of days based on what the value is"""
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
