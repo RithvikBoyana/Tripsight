@@ -20,8 +20,39 @@ struct ContentView: View {
     @State private var showItinerary = false
     @State private var showPopularCities = false
     @State private var showPopularInterests = false
+    @State private var showLoadingTimeout = false
+    @State private var rotationAngle: Double = 0
+    @State private var animationTimer: Timer?
+    @Environment(\.colorScheme) private var colorScheme
     
     let networkService: NetworkServiceProtocol
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(.systemGroupedBackground)
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(.systemBackground)
+    }
+    
+    private var textFieldBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(.systemBackground)
+    }
+    
+    private struct CustomTextFieldStyle: TextFieldStyle {
+        let backgroundColor: Color
+        
+        func _body(configuration: TextField<Self._Label>) -> some View {
+            configuration
+                .padding(10)
+                .background(backgroundColor)
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+        }
+    }
     
     init(networkService: NetworkServiceProtocol = NetworkService.shared) {
         print("ContentView initialized with networkService: \(type(of: networkService))")
@@ -58,7 +89,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .foregroundColor(.blue)
                                 TextField("Enter destination", text: $destination)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .frame(height: 50)
                                 Button(action: { showPopularCities = true }) {
@@ -78,7 +109,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .foregroundColor(.blue)
                                 TextField("Add interest then enter", text: $currentInterest)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .frame(height: 50)
                                     .focused($isInterestFieldFocused)
@@ -86,10 +117,18 @@ struct ContentView: View {
                                         addInterest()
                                         isInterestFieldFocused = true
                                     }
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            Spacer()
+                                            Button("Done") {
+                                                isInterestFieldFocused = false
+                                            }
+                                        }
+                                    }
                                 Button(action: clearInterests) {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.title)
-                                        .foregroundColor(interests.isEmpty ? .gray : .blue)
+                                        .foregroundColor(interests.isEmpty ? .gray : .red)
                                 }
                                 .disabled(interests.isEmpty)
                                 Button(action: { showPopularInterests = true }) {
@@ -139,7 +178,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .foregroundColor(.blue)
                                 TextField("Number of days (1-20)", value: $days, formatter: NumberFormatter())
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .keyboardType(.numberPad)
                                     .frame(height: 50)
@@ -219,10 +258,56 @@ struct ContentView: View {
                         }
                         .padding()
                     }
+                    
+                    // Loading Animation
+                    if isLoading {
+                        VStack(spacing: 16) {
+                            // Animated plane with dotted circle
+                            ZStack {
+                                // Dotted circle
+                                Circle()
+                                    .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                    .foregroundColor(.blue.opacity(0.3))
+                                    .frame(width: 80, height: 80)
+                                
+                                // Animated plane
+                                Image(systemName: "airplane")
+                                    .font(.system(size: 30))
+                                    .foregroundColor(.blue)
+                                    .rotationEffect(.degrees(rotationAngle * 180 / .pi + 90))
+                                    .offset(x: 40 * cos(rotationAngle), y: 40 * sin(rotationAngle))
+                            }
+                            .frame(width: 80, height: 80)
+                            
+                            // Loading message
+                            Text("Creating your perfect itinerary...")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            // Timeout message
+                            if showLoadingTimeout {
+                                Text("This is taking longer than usual. Please wait while we generate your itinerary...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(cardBackgroundColor)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
+                        )
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
                 .padding()
             }
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundColor)
             .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $showItinerary) {
                 ItineraryView(itinerary: itinerary, destination: destination, interests: interests, days: days)
@@ -267,6 +352,17 @@ struct ContentView: View {
     }
     
     private func generateItinerary() {
+        // Dismiss keyboard
+        isInterestFieldFocused = false
+        
+        // Start animation timer
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in
+            rotationAngle += 0.04
+            if rotationAngle >= 2 * .pi {
+                rotationAngle = 0
+            }
+        }
+        
         // Validate days before proceeding
         guard days >= 1 && days <= 20 else {
             daysError = true
@@ -275,6 +371,17 @@ struct ContentView: View {
         
         isLoading = true
         errorMessage = nil
+        showLoadingTimeout = false
+        
+        // Start timeout timer
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
+            if !Task.isCancelled {
+                await MainActor.run {
+                    showLoadingTimeout = true
+                }
+            }
+        }
         
         let request = TripRequest(
             destination: destination,
@@ -287,33 +394,46 @@ struct ContentView: View {
                 print("ContentView: Starting itinerary generation")
                 let response = try await networkService.generateItinerary(request: request)
                 print("ContentView: Received response from network service")
+                timeoutTask.cancel()
                 let daysData = parseItinerary(response.itinerary)
                 await MainActor.run {
                     itinerary = daysData
                     isLoading = false
                     showItinerary = true
+                    animationTimer?.invalidate()
+                    animationTimer = nil
                 }
             } catch {
                 print("ContentView: Error generating itinerary: \(error)")
+                timeoutTask.cancel()
                 await MainActor.run {
                     errorMessage = "Error generating itinerary: \(error.localizedDescription)"
                     isLoading = false
+                    animationTimer?.invalidate()
+                    animationTimer = nil
                 }
             }
         }
     }
     
     private func parseItinerary(_ response: String) -> [DayItinerary] {
+        print("Raw response from backend: \(response)")
+        
         // Split the response into days
         let daysArray = response.components(separatedBy: "Day ")
             .filter { !$0.isEmpty }
             .map { "Day " + $0 }
+        
+        print("Number of days parsed: \(daysArray.count)")
+        print("Days array: \(daysArray)")
         
         return daysArray.map { dayContent in
             // Split the day content into lines
             let lines = dayContent.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
+            
+            print("Lines for day: \(lines)")
             
             // The first line is the day title
             let title = lines[0]
@@ -341,6 +461,8 @@ struct ContentView: View {
             if !currentSection.isEmpty {
                 sections.append(currentSection.trimmingCharacters(in: .whitespacesAndNewlines))
             }
+            
+            print("Sections for day: \(sections)")
             
             return DayItinerary(title: title, sections: sections)
         }
@@ -517,4 +639,10 @@ struct ItineraryView: View {
 #Preview {
     ContentView(networkService: NetworkService.shared)
         .previewDevice("iPhone 16 Pro")
+}
+
+#Preview("Dark Mode") {
+    ContentView(networkService: NetworkService.shared)
+        .previewDevice("iPhone 16 Pro")
+        .preferredColorScheme(.dark)
 }
