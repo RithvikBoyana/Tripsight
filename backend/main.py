@@ -36,47 +36,43 @@ def generate_itinerary(request: TripRequest):
     print(f"Received request: {request}")  # Debugging line
     
     try:
-        prompt = f"""Create a travel itinerary for {request.destination} for {request.days} days based on these interests: {', '.join(request.interests)}.
+        prompt = f"""Create a itinerary for {request.destination} for {request.days} days based on interests: {', '.join(request.interests)}.
 
-IMPORTANT: Follow this EXACT format for each day:
-
-Day 1
+Format each day as:
+Day X
 Morning:
-- First activity
-- Second activity
-- Third activity
+- Activity 1
+- Activity 2
+- Activity 3
 
 Afternoon:
-- First activity
-- Second activity
-- Third activity
+- Activity 1
+- Activity 2
+- Activity 3
 
 Evening:
-- First activity
-- Second activity
-- Third activity
+- Activity 1
+- Activity 2
+- Activity 3
 
 Night:
-- First activity
-- Second activity
-- Third activity
+- Activity 1
+- Activity 2
+- Activity 3
 
 Rules:
-1. Each day must start with "Day X" on its own line
-2. Each time period (Morning/Afternoon/Evening/Night) must be on its own line followed by a colon
-3. Each activity must start with a hyphen and a space
-4. You don't need to include all time periods if not relevant
-5. Include at least 2 activities per time period
-6. No additional text or descriptions
-7. Keep activities concise and specific
-8. For single-day itineraries (1 day), focus on the most essential and iconic experiences that can be realistically completed in one day
-9. For multi-day itineraries, ensure activities are spread out logically and consider travel time between locations
-10. Make sure if the days value is greater than 1, you generate the correct number of days based on what the value is"""
+1. Start each day with "Day X"
+2. Each time period (Morning/Afternoon/Evening/Night) on its own line with colon
+3. Each activity starts with hyphen and space
+4. Include 2+ activities per time period
+5. Keep activities concise
+6. For 1-day trips, focus on essential experiences
+7. For multi-day trips, consider travel time between locations"""
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a travel itinerary planner. Create detailed but concise daily schedules. For single-day itineraries, focus on the most iconic and essential experiences that can be realistically completed in one day."},
+                {"role": "system", "content": "You are a travel planner. Create concise daily schedules. For 1-day trips, focus on essential experiences. For multi-day trips, make sure to generate all the days and their plans without skipping any days"},
                 {"role": "user", "content": prompt}
             ]
         )
