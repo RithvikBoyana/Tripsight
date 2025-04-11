@@ -68,12 +68,14 @@ Rules:
 4. You don't need to include all time periods if not relevant
 5. Include at least 2 activities per time period
 6. No additional text or descriptions
-7. Keep activities concise and specific"""
+7. Keep activities concise and specific
+8. For single-day itineraries (1 day), focus on the most essential and iconic experiences that can be realistically completed in one day
+9. For multi-day itineraries, ensure activities are spread out logically and consider travel time between locations"""
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a travel itinerary planner. Create detailed but concise daily schedules."},
+                {"role": "system", "content": "You are a travel itinerary planner. Create detailed but concise daily schedules. For single-day itineraries, focus on the most iconic and essential experiences that can be realistically completed in one day."},
                 {"role": "user", "content": prompt}
             ]
         )

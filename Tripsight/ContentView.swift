@@ -18,12 +18,20 @@ struct ContentView: View {
     @State private var daysError = false
     @FocusState private var isInterestFieldFocused: Bool
     @State private var showItinerary = false
+    @State private var showPopularCities = false
+    @State private var showPopularInterests = false
     
     let networkService: NetworkServiceProtocol
     
     init(networkService: NetworkServiceProtocol = NetworkService.shared) {
         print("ContentView initialized with networkService: \(type(of: networkService))")
         self.networkService = networkService
+    }
+    
+    private func clearInterests() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            interests.removeAll()
+        }
     }
     
     var body: some View {
@@ -53,6 +61,11 @@ struct ContentView: View {
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .font(.body)
                                     .frame(height: 50)
+                                Button(action: { showPopularCities = true }) {
+                                    Image(systemName: "list.bullet.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(.blue)
+                                }
                             }
                             .padding(.vertical, 8)
                         }
@@ -64,7 +77,7 @@ struct ContentView: View {
                                 Image(systemName: "heart.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.blue)
-                                TextField("Add interest and press enter", text: $currentInterest)
+                                TextField("Add interest then enter", text: $currentInterest)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .font(.body)
                                     .frame(height: 50)
@@ -73,6 +86,17 @@ struct ContentView: View {
                                         addInterest()
                                         isInterestFieldFocused = true
                                     }
+                                Button(action: clearInterests) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(interests.isEmpty ? .gray : .blue)
+                                }
+                                .disabled(interests.isEmpty)
+                                Button(action: { showPopularInterests = true }) {
+                                    Image(systemName: "list.bullet.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(.blue)
+                                }
                             }
                             .padding(.vertical, 8)
                             
@@ -114,37 +138,37 @@ struct ContentView: View {
                                 Image(systemName: "calendar.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.blue)
-                                TextField("Number of days (2-10)", value: $days, formatter: NumberFormatter())
+                                TextField("Number of days (1-20)", value: $days, formatter: NumberFormatter())
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .font(.body)
                                     .keyboardType(.numberPad)
                                     .frame(height: 50)
                                     .onChange(of: days) { newValue in
-                                        daysError = newValue < 2 || newValue > 10
+                                        daysError = newValue < 1 || newValue > 20
                                     }
                                 
                                 HStack(spacing: 8) {
                                     Button(action: {
-                                        if days > 2 {
+                                        if days > 1 {
                                             days -= 1
                                         }
                                     }) {
                                         Image(systemName: "minus.circle.fill")
                                             .font(.title)
-                                            .foregroundColor(days <= 2 || daysError ? .gray : .blue)
+                                            .foregroundColor(days <= 1 || daysError ? .gray : .blue)
                                     }
-                                    .disabled(days <= 2 || daysError)
+                                    .disabled(days <= 1 || daysError)
                                     
                                     Button(action: {
-                                        if days < 10 {
+                                        if days < 20 {
                                             days += 1
                                         }
                                     }) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.title)
-                                            .foregroundColor(days >= 10 || daysError ? .gray : .blue)
+                                            .foregroundColor(days >= 20 || daysError ? .gray : .blue)
                                     }
-                                    .disabled(days >= 10 || daysError)
+                                    .disabled(days >= 20 || daysError)
                                 }
                                 .padding(.leading, 8)
                             }
@@ -154,7 +178,7 @@ struct ContentView: View {
                                 HStack {
                                     Image(systemName: "exclamationmark.circle.fill")
                                         .foregroundColor(.red)
-                                    Text("Please enter a valid number of days (between 2-10)")
+                                    Text("Please enter a valid number of days (between 1-20)")
                                         .foregroundColor(.red)
                                         .font(.subheadline)
                                 }
@@ -203,6 +227,12 @@ struct ContentView: View {
             .fullScreenCover(isPresented: $showItinerary) {
                 ItineraryView(itinerary: itinerary, destination: destination, interests: interests, days: days)
             }
+            .sheet(isPresented: $showPopularCities) {
+                PopularCitiesView(selectedCity: $destination)
+            }
+            .sheet(isPresented: $showPopularInterests) {
+                PopularInterestsView(selectedInterests: $interests)
+            }
         }
     }
     
@@ -238,7 +268,7 @@ struct ContentView: View {
     
     private func generateItinerary() {
         // Validate days before proceeding
-        guard days >= 2 && days <= 10 else {
+        guard days >= 1 && days <= 20 else {
             daysError = true
             return
         }
