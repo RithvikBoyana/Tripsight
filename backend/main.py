@@ -67,7 +67,8 @@ Rules:
 4. Include 2+ activities per time period
 5. Keep activities concise
 6. For 1-day trips, focus on essential experiences
-7. For multi-day trips, consider travel time between locations"""
+7. For multi-day trips, consider travel time between locations
+8. Don't simply give suggestions like 'go to a local bar' or 'dine at a local restaurant' at least suggest a specific few locations in place of something this generic"""
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
