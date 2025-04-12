@@ -48,20 +48,22 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 16) {
                     // Header
                     VStack(spacing: 8) {
-                        Image(systemName: "airplane.circle.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.blue)
+                        Image("AppLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 160, height: 160)
+                            .clipShape(RoundedRectangle(cornerRadius: 30))
+                            .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 6)
                         Text("Tripsight")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                     }
-                    .padding(.top)
+                    .padding(.top, 0)
                     
                     // Input Form
-                    VStack(spacing: 12) {
+                    VStack(spacing: 8) {
                         // Destination Input
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -248,12 +250,12 @@ struct ContentView: View {
                                 .foregroundColor(.red)
                                 .font(.footnote)
                         }
-                        .padding()
+                        .padding(.vertical, 4)
                     }
                     
                     // Loading Animation
                     if viewModel.isLoading {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             // Animated plane with dotted circle
                             ZStack {
                                 // Dotted circle
@@ -286,21 +288,21 @@ struct ContentView: View {
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
+                        .padding(.vertical, 20)
                         .background(
                             RoundedRectangle(cornerRadius: 20)
                                 .fill(cardBackgroundColor)
                                 .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: -2)
                         )
                         .padding(.horizontal)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 12)
                         .transition(.asymmetric(
                             insertion: .scale(scale: 0.8).combined(with: .opacity),
                             removal: .scale(scale: 0.8).combined(with: .opacity)
                         ))
                     }
                 }
-                .padding()
+                .padding(.vertical, 8)
             }
             .background(backgroundColor)
             .navigationBarTitleDisplayMode(.inline)
