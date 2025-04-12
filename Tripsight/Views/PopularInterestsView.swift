@@ -8,9 +8,10 @@ struct PopularInterestsView: View {
     // Sample data - you can expand this with more interests and categories
     private let interestsByCategory: [String: [String]] = [
         "Outdoor Activities": ["Hiking", "Beach", "Camping", "Skiing", "Surfing", "Cycling", "Kayaking", "Rock Climbing"],
+        "Nature": ["National Parks", "Lakes", "Mountains", "Waterfalls", "Beaches", "Forests", "Deserts"],
         "Cultural": ["Museums", "Historical Sites", "Art Galleries", "Local Festivals", "Traditional Music", "Cultural Shows"],
         "Food & Drink": ["Local Cuisine", "Wine Tasting", "Cooking Classes", "Street Food", "Fine Dining", "Food Markets"],
-        "Shopping": ["Local Markets", "Shopping Malls", "Souvenirs", "Fashion", "Antiques", "Handicrafts"],
+        "Shopping": ["Local Markets", "Shopping Malls", "Thrifting", "Souvenirs", "Fashion", "Antiques", "Handicrafts"],
         "Entertainment": ["Nightlife", "Live Music", "Theater", "Cinema", "Theme Parks", "Casinos"],
         "Relaxation": ["Spa", "Yoga", "Meditation", "Beach Relaxation", "Hot Springs", "Massage"],
         "Adventure": ["Scuba Diving", "Paragliding", "Bungee Jumping", "Zip-lining", "Wildlife Safari", "Hot Air Balloon"],
