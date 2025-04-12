@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var itinerary: [DayItinerary] = []
     @State private var daysError = false
     @FocusState private var isInterestFieldFocused: Bool
+    @FocusState private var isDestinationFieldFocused: Bool
+    @FocusState private var isDaysFieldFocused: Bool
     @State private var showItinerary = false
     @State private var showPopularCities = false
     @State private var showPopularInterests = false
@@ -92,6 +94,18 @@ struct ContentView: View {
                                     .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .frame(height: 50)
+                                    .focused($isDestinationFieldFocused)
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        isDestinationFieldFocused = true
+                                    }
+                                Button(action: { destination = "" }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(destination.isEmpty ? .gray : .red)
+                                }
+                                .disabled(destination.isEmpty)
                                 Button(action: { showPopularCities = true }) {
                                     Image(systemName: "list.bullet.circle.fill")
                                         .font(.title)
@@ -117,13 +131,10 @@ struct ContentView: View {
                                         addInterest()
                                         isInterestFieldFocused = true
                                     }
-                                    .toolbar {
-                                        ToolbarItemGroup(placement: .keyboard) {
-                                            Spacer()
-                                            Button("Done") {
-                                                isInterestFieldFocused = false
-                                            }
-                                        }
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        isInterestFieldFocused = true
                                     }
                                 Button(action: clearInterests) {
                                     Image(systemName: "xmark.circle.fill")
@@ -182,34 +193,37 @@ struct ContentView: View {
                                     .font(.body)
                                     .keyboardType(.numberPad)
                                     .frame(height: 50)
+                                    .focused($isDaysFieldFocused)
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        isDaysFieldFocused = true
+                                    }
                                     .onChange(of: days) { newValue in
                                         daysError = newValue < 1 || newValue > 20
                                     }
                                 
-                                HStack(spacing: 8) {
-                                    Button(action: {
-                                        if days > 1 {
-                                            days -= 1
-                                        }
-                                    }) {
-                                        Image(systemName: "minus.circle.fill")
-                                            .font(.title)
-                                            .foregroundColor(days <= 1 || daysError ? .gray : .blue)
+                                Button(action: {
+                                    if days > 1 {
+                                        days -= 1
                                     }
-                                    .disabled(days <= 1 || daysError)
-                                    
-                                    Button(action: {
-                                        if days < 20 {
-                                            days += 1
-                                        }
-                                    }) {
-                                        Image(systemName: "plus.circle.fill")
-                                            .font(.title)
-                                            .foregroundColor(days >= 20 || daysError ? .gray : .blue)
-                                    }
-                                    .disabled(days >= 20 || daysError)
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(days <= 1 || daysError ? .gray : .blue)
                                 }
-                                .padding(.leading, 8)
+                                .disabled(days <= 1 || daysError)
+                                
+                                Button(action: {
+                                    if days < 20 {
+                                        days += 1
+                                    }
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(days >= 20 || daysError ? .gray : .blue)
+                                }
+                                .disabled(days >= 20 || daysError)
                             }
                             .padding(.vertical, 8)
                             
@@ -239,11 +253,11 @@ struct ContentView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(daysError ? Color.gray : Color.blue)
+                            .background(daysError || destination.isEmpty ? Color.gray : Color.blue)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
-                        .disabled(daysError || isLoading)
+                        .disabled(daysError || isLoading || destination.isEmpty)
                         .padding(.horizontal)
                     }
                     
@@ -302,7 +316,10 @@ struct ContentView: View {
                         )
                         .padding(.horizontal)
                         .padding(.bottom, 20)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.8).combined(with: .opacity),
+                            removal: .scale(scale: 0.8).combined(with: .opacity)
+                        ))
                     }
                 }
                 .padding()
@@ -318,6 +335,17 @@ struct ContentView: View {
             .sheet(isPresented: $showPopularInterests) {
                 PopularInterestsView(selectedInterests: $interests)
             }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isDestinationFieldFocused = false
+                        isInterestFieldFocused = false
+                        isDaysFieldFocused = false
+                    }
+                }
+            }
+            .ignoresSafeArea(.keyboard)
         }
     }
     
@@ -354,6 +382,8 @@ struct ContentView: View {
     private func generateItinerary() {
         // Dismiss keyboard
         isInterestFieldFocused = false
+        isDestinationFieldFocused = false
+        isDaysFieldFocused = false
         
         // Start animation timer
         animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in
@@ -477,6 +507,15 @@ struct ItineraryView: View {
     
     @State private var currentDayIndex = 0
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(.systemGroupedBackground)
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(.systemBackground)
+    }
     
     var body: some View {
         NavigationView {
@@ -488,7 +527,7 @@ struct ItineraryView: View {
                             Image(systemName: "magnifyingglass")
                                 .font(.title3)
                                 .foregroundColor(.blue)
-                            Text("Your Query")
+                            Text("Your Trip Details")
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -527,7 +566,7 @@ struct ItineraryView: View {
                         .padding(.leading, 8)
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(cardBackgroundColor)
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                     .padding(.horizontal)
@@ -599,14 +638,14 @@ struct ItineraryView: View {
                         }
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(cardBackgroundColor)
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundColor)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
