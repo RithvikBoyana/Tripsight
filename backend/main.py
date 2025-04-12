@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import openai
+from pydantic import BaseModel, Field
+from typing import List
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -11,10 +12,9 @@ load_dotenv()
 app = FastAPI()
 
 # Load OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-if not openai.api_key:
+if not os.getenv("OPENAI_API_KEY"):
     print("⚠️ OpenAI API key is missing! Make sure to set it in the environment variables.")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Add CORS middleware to allow iOS app requests
 app.add_middleware(
@@ -28,8 +28,8 @@ app.add_middleware(
 # Define request model
 class TripRequest(BaseModel):
     destination: str
-    interests: list
-    days: int
+    interests: List[str] = Field(description="List of interests for the trip")
+    days: int = Field(gt=0, description="Number of days for the trip")
 
 @app.post("/generate-itinerary")
 def generate_itinerary(request: TripRequest):
@@ -69,15 +69,15 @@ Rules:
 6. For 1-day trips, focus on essential experiences
 7. For multi-day trips, consider travel time between locations"""
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a travel planner. Create concise daily schedules. For 1-day trips, focus on essential experiences. For multi-day trips, make sure to generate all the days and their plans without skipping any days"},
                 {"role": "user", "content": prompt}
             ]
         )
 
-        return {"itinerary": response["choices"][0]["message"]["content"]}
+        return {"itinerary": response.choices[0].message.content}
     except Exception as e:
         print(f"Error generating itinerary: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

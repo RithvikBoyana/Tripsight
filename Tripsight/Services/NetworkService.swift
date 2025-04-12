@@ -46,4 +46,8 @@ enum NetworkError: Error {
     case invalidURL
     case invalidResponse
     case decodingError
+    case noInternet
+    case timeout
+    case serverError
+    case unknown
 } 

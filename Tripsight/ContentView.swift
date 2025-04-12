@@ -8,26 +8,11 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var destination = ""
-    @State private var interests: [String] = []
-    @State private var currentInterest = ""
-    @State private var days = 3
-    @State private var isLoading = false
-    @State private var errorMessage: String? = nil
-    @State private var itinerary: [DayItinerary] = []
-    @State private var daysError = false
+    @StateObject private var viewModel: TripViewModel
     @FocusState private var isInterestFieldFocused: Bool
     @FocusState private var isDestinationFieldFocused: Bool
     @FocusState private var isDaysFieldFocused: Bool
-    @State private var showItinerary = false
-    @State private var showPopularCities = false
-    @State private var showPopularInterests = false
-    @State private var showLoadingTimeout = false
-    @State private var rotationAngle: Double = 0
-    @State private var animationTimer: Timer?
     @Environment(\.colorScheme) private var colorScheme
-    
-    let networkService: NetworkServiceProtocol
     
     private var backgroundColor: Color {
         colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(.systemGroupedBackground)
@@ -57,14 +42,7 @@ struct ContentView: View {
     }
     
     init(networkService: NetworkServiceProtocol = NetworkService.shared) {
-        print("ContentView initialized with networkService: \(type(of: networkService))")
-        self.networkService = networkService
-    }
-    
-    private func clearInterests() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            interests.removeAll()
-        }
+        _viewModel = StateObject(wrappedValue: TripViewModel(networkService: networkService))
     }
     
     var body: some View {
@@ -90,7 +68,7 @@ struct ContentView: View {
                                 Image(systemName: "mappin.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.blue)
-                                TextField("Enter destination", text: $destination)
+                                TextField("Enter destination", text: $viewModel.destination)
                                     .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .frame(height: 50)
@@ -100,13 +78,13 @@ struct ContentView: View {
                                     .onTapGesture {
                                         isDestinationFieldFocused = true
                                     }
-                                Button(action: { destination = "" }) {
+                                Button(action: { viewModel.destination = "" }) {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.title)
-                                        .foregroundColor(destination.isEmpty ? .gray : .red)
+                                        .foregroundColor(viewModel.destination.isEmpty ? .gray : .red)
                                 }
-                                .disabled(destination.isEmpty)
-                                Button(action: { showPopularCities = true }) {
+                                .disabled(viewModel.destination.isEmpty)
+                                Button(action: { viewModel.showPopularCities = true }) {
                                     Image(systemName: "list.bullet.circle.fill")
                                         .font(.title)
                                         .foregroundColor(.blue)
@@ -122,13 +100,13 @@ struct ContentView: View {
                                 Image(systemName: "heart.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.blue)
-                                TextField("Add interest then enter", text: $currentInterest)
+                                TextField("Add interest then enter", text: $viewModel.currentInterest)
                                     .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .frame(height: 50)
                                     .focused($isInterestFieldFocused)
                                     .onSubmit {
-                                        addInterest()
+                                        viewModel.addInterest()
                                         isInterestFieldFocused = true
                                     }
                                     .frame(maxWidth: .infinity)
@@ -136,13 +114,13 @@ struct ContentView: View {
                                     .onTapGesture {
                                         isInterestFieldFocused = true
                                     }
-                                Button(action: clearInterests) {
+                                Button(action: viewModel.clearInterests) {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.title)
-                                        .foregroundColor(interests.isEmpty ? .gray : .red)
+                                        .foregroundColor(viewModel.interests.isEmpty ? .gray : .red)
                                 }
-                                .disabled(interests.isEmpty)
-                                Button(action: { showPopularInterests = true }) {
+                                .disabled(viewModel.interests.isEmpty)
+                                Button(action: { viewModel.showPopularInterests = true }) {
                                     Image(systemName: "list.bullet.circle.fill")
                                         .font(.title)
                                         .foregroundColor(.blue)
@@ -151,15 +129,15 @@ struct ContentView: View {
                             .padding(.vertical, 8)
                             
                             // Tags View
-                            if !interests.isEmpty {
+                            if !viewModel.interests.isEmpty {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
-                                        ForEach(interests, id: \.self) { interest in
+                                        ForEach(viewModel.interests, id: \.self) { interest in
                                             HStack(spacing: 4) {
                                                 Text(interest)
                                                     .font(.subheadline)
                                                 Button(action: {
-                                                    removeInterest(interest)
+                                                    viewModel.removeInterest(interest)
                                                 }) {
                                                     Image(systemName: "xmark.circle.fill")
                                                         .foregroundColor(.gray)
@@ -177,7 +155,7 @@ struct ContentView: View {
                                     }
                                     .padding(.horizontal)
                                 }
-                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: interests)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.interests)
                             }
                         }
                         .padding(.horizontal)
@@ -188,7 +166,7 @@ struct ContentView: View {
                                 Image(systemName: "calendar.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.blue)
-                                TextField("Number of days (1-20)", value: $days, formatter: NumberFormatter())
+                                TextField("Number of days (1-20)", value: $viewModel.days, formatter: NumberFormatter())
                                     .textFieldStyle(CustomTextFieldStyle(backgroundColor: textFieldBackgroundColor))
                                     .font(.body)
                                     .keyboardType(.numberPad)
@@ -199,35 +177,35 @@ struct ContentView: View {
                                     .onTapGesture {
                                         isDaysFieldFocused = true
                                     }
-                                    .onChange(of: days) { newValue in
-                                        daysError = newValue < 1 || newValue > 20
+                                    .onChange(of: viewModel.days) { newValue in
+                                        viewModel.daysError = newValue < 1 || newValue > 20
                                     }
                                 
                                 Button(action: {
-                                    if days > 1 {
-                                        days -= 1
+                                    if viewModel.days > 1 {
+                                        viewModel.days -= 1
                                     }
                                 }) {
                                     Image(systemName: "minus.circle.fill")
                                         .font(.title)
-                                        .foregroundColor(days <= 1 || daysError ? .gray : .blue)
+                                        .foregroundColor(viewModel.days <= 1 || viewModel.daysError ? .gray : .blue)
                                 }
-                                .disabled(days <= 1 || daysError)
+                                .disabled(viewModel.days <= 1 || viewModel.daysError)
                                 
                                 Button(action: {
-                                    if days < 20 {
-                                        days += 1
+                                    if viewModel.days < 20 {
+                                        viewModel.days += 1
                                     }
                                 }) {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.title)
-                                        .foregroundColor(days >= 20 || daysError ? .gray : .blue)
+                                        .foregroundColor(viewModel.days >= 20 || viewModel.daysError ? .gray : .blue)
                                 }
-                                .disabled(days >= 20 || daysError)
+                                .disabled(viewModel.days >= 20 || viewModel.daysError)
                             }
                             .padding(.vertical, 8)
                             
-                            if daysError {
+                            if viewModel.daysError {
                                 HStack {
                                     Image(systemName: "exclamationmark.circle.fill")
                                         .foregroundColor(.red)
@@ -240,9 +218,9 @@ struct ContentView: View {
                         .padding(.horizontal)
                         
                         // Generate Button
-                        Button(action: generateItinerary) {
+                        Button(action: viewModel.generateItinerary) {
                             HStack {
-                                if isLoading {
+                                if viewModel.isLoading {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 } else {
@@ -253,16 +231,16 @@ struct ContentView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(daysError || destination.isEmpty ? Color.gray : Color.blue)
+                            .background(viewModel.daysError || viewModel.destination.isEmpty ? Color.gray : Color.blue)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
-                        .disabled(daysError || isLoading || destination.isEmpty)
+                        .disabled(viewModel.daysError || viewModel.isLoading || viewModel.destination.isEmpty)
                         .padding(.horizontal)
                     }
                     
                     // Error Message
-                    if let error = errorMessage {
+                    if let error = viewModel.errorMessage {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.red)
@@ -274,7 +252,7 @@ struct ContentView: View {
                     }
                     
                     // Loading Animation
-                    if isLoading {
+                    if viewModel.isLoading {
                         VStack(spacing: 16) {
                             // Animated plane with dotted circle
                             ZStack {
@@ -288,8 +266,8 @@ struct ContentView: View {
                                 Image(systemName: "airplane")
                                     .font(.system(size: 30))
                                     .foregroundColor(.blue)
-                                    .rotationEffect(.degrees(rotationAngle * 180 / .pi + 90))
-                                    .offset(x: 40 * cos(rotationAngle), y: 40 * sin(rotationAngle))
+                                    .rotationEffect(.degrees(viewModel.rotationAngle * 180 / .pi + 90))
+                                    .offset(x: 40 * cos(viewModel.rotationAngle), y: 40 * sin(viewModel.rotationAngle))
                             }
                             .frame(width: 80, height: 80)
                             
@@ -299,7 +277,7 @@ struct ContentView: View {
                                 .foregroundColor(.primary)
                             
                             // Timeout message
-                            if showLoadingTimeout {
+                            if viewModel.showLoadingTimeout {
                                 Text("This is taking longer than usual. Please wait while we generate your itinerary...")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
@@ -326,14 +304,19 @@ struct ContentView: View {
             }
             .background(backgroundColor)
             .navigationBarTitleDisplayMode(.inline)
-            .fullScreenCover(isPresented: $showItinerary) {
-                ItineraryView(itinerary: itinerary, destination: destination, interests: interests, days: days)
+            .fullScreenCover(isPresented: $viewModel.showItinerary) {
+                ItineraryView(
+                    itinerary: viewModel.itinerary,
+                    destination: viewModel.destination,
+                    interests: viewModel.interests,
+                    days: viewModel.days
+                )
             }
-            .sheet(isPresented: $showPopularCities) {
-                PopularCitiesView(selectedCity: $destination)
+            .sheet(isPresented: $viewModel.showPopularCities) {
+                PopularCitiesView(selectedCity: $viewModel.destination)
             }
-            .sheet(isPresented: $showPopularInterests) {
-                PopularInterestsView(selectedInterests: $interests)
+            .sheet(isPresented: $viewModel.showPopularInterests) {
+                PopularInterestsView(selectedInterests: $viewModel.interests)
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -347,331 +330,6 @@ struct ContentView: View {
             }
             .ignoresSafeArea(.keyboard)
         }
-    }
-    
-    private func timePeriodIcon(for timePeriod: String) -> String {
-        if timePeriod.contains("Morning") {
-            return "sunrise.fill"
-        } else if timePeriod.contains("Afternoon") {
-            return "sun.max.fill"
-        } else if timePeriod.contains("Evening") {
-            return "sunset.fill"
-        } else if timePeriod.contains("Night") {
-            return "moon.stars.fill"
-        }
-        return "clock.fill"
-    }
-    
-    private func addInterest() {
-        let trimmedInterest = currentInterest.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedInterest.isEmpty && !interests.contains(trimmedInterest) {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                interests.append(trimmedInterest)
-            }
-        }
-        currentInterest = ""
-        isInterestFieldFocused = true
-    }
-    
-    private func removeInterest(_ interest: String) {
-        withAnimation(.easeOut(duration: 0.2)) {
-            interests.removeAll { $0 == interest }
-        }
-    }
-    
-    private func generateItinerary() {
-        // Dismiss keyboard
-        isInterestFieldFocused = false
-        isDestinationFieldFocused = false
-        isDaysFieldFocused = false
-        
-        // Start animation timer
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { _ in
-            rotationAngle += 0.04
-            if rotationAngle >= 2 * .pi {
-                rotationAngle = 0
-            }
-        }
-        
-        // Validate days before proceeding
-        guard days >= 1 && days <= 20 else {
-            daysError = true
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        showLoadingTimeout = false
-        
-        // Start timeout timer
-        let timeoutTask = Task {
-            try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
-            if !Task.isCancelled {
-                await MainActor.run {
-                    showLoadingTimeout = true
-                }
-            }
-        }
-        
-        let request = TripRequest(
-            destination: destination,
-            interests: interests,
-            days: days
-        )
-        
-        Task {
-            do {
-                print("ContentView: Starting itinerary generation")
-                let response = try await networkService.generateItinerary(request: request)
-                print("ContentView: Received response from network service")
-                timeoutTask.cancel()
-                let daysData = parseItinerary(response.itinerary)
-                await MainActor.run {
-                    itinerary = daysData
-                    isLoading = false
-                    showItinerary = true
-                    animationTimer?.invalidate()
-                    animationTimer = nil
-                }
-            } catch {
-                print("ContentView: Error generating itinerary: \(error)")
-                timeoutTask.cancel()
-                await MainActor.run {
-                    errorMessage = "Error generating itinerary: \(error.localizedDescription)"
-                    isLoading = false
-                    animationTimer?.invalidate()
-                    animationTimer = nil
-                }
-            }
-        }
-    }
-    
-    private func parseItinerary(_ response: String) -> [DayItinerary] {
-        print("Raw response from backend: \(response)")
-        
-        // Split the response into days
-        let daysArray = response.components(separatedBy: "Day ")
-            .filter { !$0.isEmpty }
-            .map { "Day " + $0 }
-        
-        print("Number of days parsed: \(daysArray.count)")
-        print("Days array: \(daysArray)")
-        
-        return daysArray.map { dayContent in
-            // Split the day content into lines
-            let lines = dayContent.components(separatedBy: .newlines)
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-            
-            print("Lines for day: \(lines)")
-            
-            // The first line is the day title
-            let title = lines[0]
-            
-            // Process the rest of the lines
-            var sections: [String] = []
-            var currentSection = ""
-            
-            for line in lines.dropFirst() {
-                if line.hasPrefix("Morning:") || line.hasPrefix("Afternoon:") || 
-                   line.hasPrefix("Evening:") || line.hasPrefix("Night:") {
-                    // If we have a previous section, add it
-                    if !currentSection.isEmpty {
-                        sections.append(currentSection.trimmingCharacters(in: .whitespacesAndNewlines))
-                    }
-                    currentSection = line
-                } else if line.hasPrefix("-") {
-                    // Remove the hyphen and any leading whitespace
-                    let cleanedLine = line.replacingOccurrences(of: "^\\s*-\\s*", with: "", options: .regularExpression)
-                    currentSection += "\n" + cleanedLine
-                }
-            }
-            
-            // Add the last section if it exists
-            if !currentSection.isEmpty {
-                sections.append(currentSection.trimmingCharacters(in: .whitespacesAndNewlines))
-            }
-            
-            print("Sections for day: \(sections)")
-            
-            return DayItinerary(title: title, sections: sections)
-        }
-    }
-}
-
-struct ItineraryView: View {
-    let itinerary: [DayItinerary]
-    let destination: String
-    let interests: [String]
-    let days: Int
-    
-    @State private var currentDayIndex = 0
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(.systemGroupedBackground)
-    }
-    
-    private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(.systemBackground)
-    }
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Query Summary
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .font(.title3)
-                                .foregroundColor(.blue)
-                            Text("Your Trip Details")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(alignment: .top) {
-                                Text("Location:")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                Text(destination.isEmpty ? "Not specified" : destination)
-                                    .font(.headline)
-                            }
-                            
-                            HStack(alignment: .top) {
-                                Text("Interests:")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                if interests.isEmpty {
-                                    Text("none")
-                                        .font(.headline)
-                                        .italic()
-                                } else {
-                                    Text(interests.joined(separator: ", "))
-                                        .font(.headline)
-                                }
-                            }
-                            
-                            HStack(alignment: .top) {
-                                Text("Days:")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                Text("\(days)")
-                                    .font(.headline)
-                            }
-                        }
-                        .padding(.leading, 8)
-                    }
-                    .padding()
-                    .background(cardBackgroundColor)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                    .padding(.horizontal)
-                    
-                    // Day Card
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            HStack {
-                                Image(systemName: "calendar.badge.clock")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                                Text(itinerary[currentDayIndex].title)
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                            }
-                            
-                            Spacer()
-                            
-                            HStack(spacing: 16) {
-                                Button(action: { if currentDayIndex > 0 { currentDayIndex -= 1 } }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.title3)
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .background(currentDayIndex == 0 ? Color.gray : Color.blue)
-                                        .cornerRadius(8)
-                                }
-                                .disabled(currentDayIndex == 0)
-                                
-                                Button(action: { if currentDayIndex < itinerary.count - 1 { currentDayIndex += 1 } }) {
-                                    Image(systemName: "chevron.right")
-                                        .font(.title3)
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .background(currentDayIndex == itinerary.count - 1 ? Color.gray : Color.blue)
-                                        .cornerRadius(8)
-                                }
-                                .disabled(currentDayIndex == itinerary.count - 1)
-                            }
-                        }
-                        
-                        ForEach(itinerary[currentDayIndex].sections, id: \.self) { section in
-                            VStack(alignment: .leading, spacing: 12) {
-                                let components = section.components(separatedBy: .newlines)
-                                if let timePeriod = components.first {
-                                    HStack {
-                                        Image(systemName: timePeriodIcon(for: timePeriod))
-                                            .font(.title3)
-                                            .foregroundColor(.blue)
-                                        Text(timePeriod)
-                                            .font(.headline)
-                                            .foregroundColor(.blue)
-                                            .fontWeight(.bold)
-                                    }
-                                }
-                                
-                                ForEach(components.dropFirst(), id: \.self) { activity in
-                                    HStack(alignment: .top) {
-                                        Image(systemName: "circle.fill")
-                                            .font(.system(size: 8))
-                                            .foregroundColor(.blue)
-                                            .padding(.top, 8)
-                                        Text(activity)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(cardBackgroundColor)
-                    .cornerRadius(12)
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                    .padding(.horizontal)
-                }
-                .padding(.vertical)
-            }
-            .background(backgroundColor)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func timePeriodIcon(for timePeriod: String) -> String {
-        if timePeriod.contains("Morning") {
-            return "sunrise.fill"
-        } else if timePeriod.contains("Afternoon") {
-            return "sun.max.fill"
-        } else if timePeriod.contains("Evening") {
-            return "sunset.fill"
-        } else if timePeriod.contains("Night") {
-            return "moon.stars.fill"
-        }
-        return "clock.fill"
     }
 }
 
