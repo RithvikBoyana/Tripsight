@@ -65,15 +65,16 @@ Rules:
 2. Each time period (Morning/Afternoon/Evening/Night) on its own line with colon
 3. Each activity starts with hyphen and space
 4. Include 2+ activities per time period
-5. Keep activities concise
+5. Keep activities concise and plain text only - NO markdown, NO asterisks, NO formatting
 6. For 1-day trips, focus on essential experiences
 7. For multi-day trips, consider travel time between locations
-8. Don't simply give suggestions like 'go to a local bar' or 'dine at a local restaurant' at least suggest a specific few locations in place of something this generic"""
+8. Always suggest specific named locations (e.g. "Have lunch at Joe's Seafood" instead of "Have lunch at a seafood restaurant")
+9. Never use asterisks or any other special characters for emphasis"""
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a travel planner. Create concise daily schedules. For 1-day trips, focus on essential experiences. For multi-day trips, make sure to generate all the days and their plans without skipping any days"},
+                {"role": "system", "content": "You are a travel planner. Create concise daily schedules in plain text only - no markdown, no formatting, no asterisks. For 1-day trips, focus on essential experiences. For multi-day trips, make sure to generate all the days and their plans without skipping any days. Always use specific location names."},
                 {"role": "user", "content": prompt}
             ]
         )
