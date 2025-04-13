@@ -72,7 +72,7 @@ Dependencies/
 
 # fastlane
 #
-# It is recommended to not store the screenshots in the git repo.
+# It is recommended to not store the screenshots in the git repository.
 # Instead, use fastlane to re-generate the screenshots whenever they are needed.
 # For more information about the recommended setup visit:
 # https://docs.fastlane.tools/best-practices/source-control/#source-control
@@ -91,6 +91,37 @@ iOSInjectionProject/
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Environment files
+.env
+.env.*
+*.env
+*.env.*
+
+# API Keys and Secrets
+GoogleService-Info.plist
+*secret*
+*private*
+*key*
+*password*
+*credential*
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log
+
+# Local development
+*.local
+*.local.*
+
+# Temporary files
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
 
 # Python
 __pycache__/
@@ -99,26 +130,15 @@ __pycache__/
 *.so
 .Python
 env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-.env
 venv/
-
-# Xcode Patch
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcworkspace/contents.xcworkspacedata
-/*.gcno 
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so 
