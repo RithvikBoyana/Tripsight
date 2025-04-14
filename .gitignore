@@ -102,6 +102,7 @@ iOSInjectionProject/
 
 # API Keys and Secrets
 GoogleService-Info.plist
+GoogleService-Info-*.plist
 *secret*
 *private*
 *key*
@@ -111,6 +112,11 @@ GoogleService-Info.plist
 # Firebase
 firebase-debug.log
 firebase-debug.*.log
+
+# Configuration
+config.json
+config-*.json
+*config*.plist
 
 # Local development
 *.local
@@ -139,6 +145,4 @@ dist/
 build/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.so 
+*.pyd 
